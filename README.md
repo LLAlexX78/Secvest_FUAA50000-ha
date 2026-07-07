@@ -29,3 +29,22 @@ custom_components/secvest/
 tools/verify_api.py         Verifikationstest gegen die Anlage (Lesen; optional Schalttest)
 CLAUDE.md                   Arbeitsplan für Claude Code
 ```
+
+## Installation über HACS
+
+1. HACS → drei Punkte oben rechts → **Custom repositories**.
+2. Repository `https://github.com/LLAlexX78/Secvest_FUAA50000-ha`,
+   Kategorie **Integration** hinzufügen.
+3. „ABUS Secvest" installieren, Home Assistant neu starten.
+4. **Einstellungen → Geräte & Dienste → Integration hinzufügen** → „ABUS
+   Secvest" → Host, Bedienercode und Web-Passwort eingeben.
+
+Alternativ manuell: den Ordner `custom_components/secvest/` in das
+HA-Konfigurationsverzeichnis kopieren und HA neu starten.
+
+Mindestens Home Assistant **2024.5** erforderlich (`runtime_data`).
+
+## Lizenz
+
+[MIT](LICENSE) © 2026 Alexander Koenigs
+
