@@ -27,9 +27,16 @@ DEFAULT_LOG_LIMIT = 10
 ENDPOINT_PARTITIONS = "/system/partitions/"
 ENDPOINT_PARTITION_SET = "/system/partitions-{p}/"
 ENDPOINT_FAULTS = "/faults/"
+# sec_global_status.cgx liefert offene Zonen nur einer eingeloggten
+# Web-UI-Session (Basic: <authorised> leer). Daher NICHT vom Client
+# genutzt – offene Zonen kommen aus /faults/ type 5000. Nur zur Doku.
 ENDPOINT_GLOBAL_STATUS = "/sec_global_status.cgx"
 ENDPOINT_LOGS = "/logs/"
 ENDPOINT_FORM_LOGIN = "/sec_login.cgi"
+
+# /faults/-Störungstyp für eine offene Zone (belegt) – Basis der
+# Offen/Zu-Erkennung der Zonen-Binary-Sensors.
+FAULT_TYPE_OPEN_ZONE = "5000"
 
 # Zustände laut API: "set" | "unset" | "partset" (alle verifiziert).
 # partset (intern scharf) am 07.07.2026 auf TB1 (Haustür) bestätigt:

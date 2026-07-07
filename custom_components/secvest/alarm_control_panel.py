@@ -118,8 +118,8 @@ class SecvestAlarmPanel(CoordinatorEntity[SecvestCoordinator], AlarmControlPanel
         )
         open_zones = [
             z["name"]
-            for z in self.coordinator.data.open_zones
-            if pid in z.get("partitions", "")
+            for z in self.coordinator.data.zones.values()
+            if z.get("open") and z.get("partition") == pid
         ]
         part = self._data()
         return {

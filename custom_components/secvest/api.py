@@ -17,9 +17,9 @@ import httpx
 
 from .const import (
     DEFAULT_LOG_LIMIT,
+    FAULT_TYPE_OPEN_ZONE,
     ENDPOINT_FAULTS,
     ENDPOINT_FORM_LOGIN,
-    ENDPOINT_GLOBAL_STATUS,
     ENDPOINT_LOGS,
     ENDPOINT_PARTITION_SET,
     ENDPOINT_PARTITIONS,
@@ -33,11 +33,15 @@ _LOGGER = logging.getLogger(__name__)
 # ECDHE-RSA-CHACHA20/TLSv1.2). Connect-Timeout entsprechend großzügig.
 TIMEOUT = httpx.Timeout(10.0, connect=20.0)
 
-_ZONE_RE = re.compile(
-    r"<zone><name>(?P<name>.*?)</name><state>(?P<state>.*?)</state>"
-    r"<partitions>(?P<partitions>.*?)</partitions></zone>",
-    re.DOTALL,
-)
+# Führendes "Z<nr> <typ> " aus dem fault-ui-string entfernen -> reiner
+# Zonenname, z.B. "Z302 A OG Draht" -> "OG Draht".
+_ZONE_NAME_RE = re.compile(r"^Z\d+\s+\S+\s+")
+
+
+def _zone_name_from_ui(ui: str) -> str:
+    """Zonenname aus dem ui-string einer offenen-Zone-Störung ableiten."""
+    stripped = _ZONE_NAME_RE.sub("", ui or "").strip()
+    return stripped or (ui or "").strip()
 
 
 class SecvestError(Exception):
@@ -60,8 +64,10 @@ class SecvestData:
     partitions: dict[int, dict[str, Any]] = field(default_factory=dict)
     # Störungen aus /faults/ (inkl. prevents-set)
     faults: list[dict[str, Any]] = field(default_factory=list)
-    # Offene Zonen aus sec_global_status: [{"name", "state", "partitions"}]
-    open_zones: list[dict[str, str]] = field(default_factory=list)
+    # Zonen/Melder: zone_id -> {"name": str, "partition": str|None,
+    # "open": bool}. Grundgerüst aus /system/partitions/, Offen-Status +
+    # Namen aus type-5000-Störungen in /faults/.
+    zones: dict[str, dict[str, Any]] = field(default_factory=dict)
     # Neueste Ereignisse aus /logs/ (client-seitig begrenzt)
     logs: list[dict[str, Any]] = field(default_factory=list)
 
@@ -87,6 +93,9 @@ class SecvestClient:
             headers={"X-Requested-With": "XMLHttpRequest"},
         )
         self._form_login_done = False
+        # Zonennamen tauchen nur in offenen-Zone-Störungen auf; einmal
+        # gesehen, für die Prozesslaufzeit merken (zone_id -> Name).
+        self._zone_names: dict[str, str] = {}
 
     async def async_close(self) -> None:
         await self._client.aclose()
@@ -186,15 +195,11 @@ class SecvestClient:
         except (SecvestConnectionError, ValueError):
             _LOGGER.debug("Faults nicht abrufbar, wird übersprungen")
 
-        # Offene Zonen (optional, XML-artiges Format)
-        try:
-            resp = await self._request("GET", ENDPOINT_GLOBAL_STATUS)
-            if resp.status_code < 300:
-                data.open_zones = [
-                    m.groupdict() for m in _ZONE_RE.finditer(resp.text)
-                ]
-        except SecvestConnectionError:
-            _LOGGER.debug("Global-Status nicht abrufbar, wird übersprungen")
+        # Zonen ableiten. sec_global_status.cgx liefert die offenen Zonen
+        # nur einer eingeloggten Web-UI-Session (Basic: <authorised> leer),
+        # daher NICHT nutzbar. Stattdessen: Grundgerüst aus den Partitionen,
+        # Offen-Status + Namen aus type-5000-Störungen (Basic-tauglich).
+        data.zones = self._build_zones(data.partitions, data.faults)
 
         # Ereignisprotokoll (optional). Im selben sequentiellen Poll-Zyklus,
         # keine Extra-Requests außerhalb des Coordinators.
@@ -204,6 +209,45 @@ class SecvestClient:
             _LOGGER.debug("Logs nicht abrufbar, werden übersprungen")
 
         return data
+
+    def _build_zones(
+        self,
+        partitions: dict[int, dict[str, Any]],
+        faults: list[dict[str, Any]],
+    ) -> dict[str, dict[str, Any]]:
+        """Zonenliste aus Partitionen + type-5000-Störungen bauen.
+
+        Grundgerüst (alle Zonen, geschlossen) aus /system/partitions/;
+        offene Zonen + reale Namen aus den offenen-Zone-Störungen.
+        """
+        zones: dict[str, dict[str, Any]] = {}
+        for pid, part in partitions.items():
+            for zid in part.get("zones", []):
+                zid = str(zid)
+                zones[zid] = {
+                    "name": self._zone_names.get(zid, f"Zone {zid}"),
+                    "partition": str(pid),
+                    "open": False,
+                }
+        for fault in faults:
+            if str(fault.get("type")) != FAULT_TYPE_OPEN_ZONE:
+                continue
+            zid = fault.get("affects-zone")
+            if not zid:
+                continue
+            zid = str(zid)
+            name = _zone_name_from_ui(fault.get("ui-string", ""))
+            if name:
+                self._zone_names[zid] = name
+            affects = fault.get("affects-partition") or []
+            zone = zones.setdefault(
+                zid, {"name": None, "partition": None, "open": False}
+            )
+            zone["open"] = True
+            zone["name"] = self._zone_names.get(zid, zone.get("name") or f"Zone {zid}")
+            if not zone.get("partition") and affects:
+                zone["partition"] = str(affects[0])
+        return zones
 
     async def async_get_logs(self, limit: int = DEFAULT_LOG_LIMIT) -> list[dict]:
         """Neueste Ereignisse aus /logs/.

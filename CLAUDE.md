@@ -120,28 +120,47 @@ teilbereich/zone + `letzte_ereignisse`-Liste). Platform.SENSOR in
 __init__.py registriert. Lastnotiz: 600er-Payload je Poll – falls die
 Anlage darunter leidet, Logs später seltener holen (nicht jeder Zyklus).
 
-## Zonen-Endpoints 07.07.2026 (Aufgabe 4) – Probe, BLOCKIERT
+## Zonen 07.07.2026 (Aufgabe 4) – GELÖST über /faults/ type 5000
 
-Lesende Endpoint-Suche für Zonendetails (Namen/Zustand/Teilbereich):
+Endpoint-Suche zeigte: REST-Zonendetails gibt es nicht
+(`/system/zones/`, `/system/zones-301/`, `/zones-301/` … alle 404).
+`sec_global_status.cgx` und `sec_zones.cgx` liefern Volldaten nur einer
+eingeloggten Web-UI-Session – mit Basic Auth kommt nur das Skelett
+(`<authorised></authorised>`, leere open_zones), **auch wenn eine Zone
+offen ist** (live geprüft). Der Form-Login (`POST /sec_login.cgi`
+usr/pwd) stellt KEINE Session her (kein Set-Cookie, Antwort = Login-HTML)
+→ die `_form_login`-Fallback-Logik ist de facto wirkungslos; Basic reicht
+aber für alle genutzten REST-Endpoints.
 
-- `/system/zones/`, `/system/zones-301/`, `/system/zone-301/`,
-  `/zones-301/`, `/zones/`, `/system/zones-303/` → alle **HTTP 404**.
-- `/sec_zones.cgx` → **HTTP 200**, aber nur
-  `<form><nloggedin></nloggedin> style="display:none;" …</form>`
-  ("not logged in"). Auch nach erzwungenem `POST /sec_login.cgi`
-  unverändert → dieser cgx braucht einen anderen Session-/Login-Flow
-  (oder die Seite rendert die Daten per JS aus einem weiteren Endpoint).
-- `/sec_zone_status.cgx`, `/sec_zonestatus.cgx`, `/sec_zonen.cgx` → 404.
+**Basic-taugliche Lösung:** Eine OFFENE Zone erscheint in `/faults/` als
 
-**Blockiert – braucht DevTools-/HAR-Mitschnitt der Zonen-/Melderseite
-der Web-UI** (welcher Request liefert die Zonenliste mit Namen/Zustand?).
-Bekannt bleibt aus /system/partitions/: Zonen-IDs je Teilbereich
-(TB1→303, TB2→301, TB3→302). Namen erscheinen bisher nur in
-/faults/-ui-strings und in sec_global_status (nur bei OFFENEN Zonen).
-Hinweis: aktuelles sec_global_status-Format war
-`<form><authorised></authorised><open_zones>  </open_zones></form>` –
-weicht vom früher dokumentierten `<zone><name>…` ab (Format ggf.
-firmware-/zustandsabhängig; im Mitschnitt mit prüfen).
+```json
+{ "type": "5000", "ui-string": "Z302 A OG Draht",
+  "affects-partition": ["3"], "affects-zone": "302",
+  "prevents-set": true, "is-rf-warning": false }
+```
+
+- Offen/Zu: Zone ist offen, wenn eine `type:"5000"`-Störung ihre ID in
+  `affects-zone` trägt.
+- ID = `affects-zone` (`"302"`), Teilbereich = `affects-partition`
+  (sauber 1-basiert `["3"]`), Name = `ui-string` (Prefix „Z302 A "
+  entfernt → „OG Draht"). Zonen-Grundgerüst (alle IDs + Teilbereich)
+  aus `/system/partitions/`.
+
+Merke: In `sec_global_status.cgx` ist `<partitions>` eine Bitmaske
+(TB3 → 4), in `/faults/` `affects-partition` dagegen die klare Liste
+(`["3"]`) – wir nutzen /faults/.
+
+**Umgesetzt (Aufgabe 4):** api.py `_build_zones()` + `SecvestData.zones`
+(zone_id → name/partition/open); Namen-Cache im Client (Name nur bei
+offener Zone sichtbar → einmal gesehen für Laufzeit gemerkt).
+sec_global_status-Abruf ENTFERNT (unter Basic tot → ein GET/Poll
+weniger). binary_sensor.py: `SecvestZoneSensor` je Zone
+(device_class opening, unique_id über Zonen-ID). alarm_control_panel.py
+open_zones-Attribut nutzt jetzt data.zones (Bitmaske-Bug behoben).
+const.py `FAULT_TYPE_OPEN_ZONE="5000"`. End-to-End verifiziert (302 offen
+= „OG Draht"/TB3). Namens-Caveat: geschlossene, nie geöffnete Zonen
+heißen „Zone <id>" bis zum ersten Offen-Zustand (in HA umbenennbar).
 
 ## Offene Punkte
 
