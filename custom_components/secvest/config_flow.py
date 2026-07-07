@@ -56,6 +56,8 @@ class SecvestConfigFlow(ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
+    _reauth_entry: ConfigEntry | None = None
+
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
@@ -94,6 +96,64 @@ class SecvestConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="user", data_schema=DATA_SCHEMA, errors=errors
+        )
+
+    async def async_step_reauth(
+        self, entry_data: dict[str, Any]
+    ) -> ConfigFlowResult:
+        """Ausgelöst bei SecvestAuthError (z.B. nach Passwortwechsel)."""
+        self._reauth_entry = self.hass.config_entries.async_get_entry(
+            self.context["entry_id"]
+        )
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        errors: dict[str, str] = {}
+        entry = self._reauth_entry
+        assert entry is not None
+
+        if user_input is not None:
+            client = SecvestClient(
+                host=entry.data[CONF_HOST],
+                port=entry.data[CONF_PORT],
+                username=user_input[CONF_USERNAME],
+                password=user_input[CONF_PASSWORD],
+                verify_ssl=entry.data.get(CONF_VERIFY_SSL, DEFAULT_VERIFY_SSL),
+            )
+            try:
+                await client.async_validate()
+            except SecvestAuthError:
+                errors["base"] = "invalid_auth"
+            except SecvestConnectionError:
+                errors["base"] = "cannot_connect"
+            except Exception:  # noqa: BLE001
+                _LOGGER.exception("Unerwarteter Fehler")
+                errors["base"] = "unknown"
+            finally:
+                await client.async_close()
+
+            if not errors:
+                return self.async_update_reload_and_abort(
+                    entry,
+                    data={
+                        **entry.data,
+                        CONF_USERNAME: user_input[CONF_USERNAME],
+                        CONF_PASSWORD: user_input[CONF_PASSWORD],
+                    },
+                )
+
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_USERNAME, default=entry.data[CONF_USERNAME]
+                ): str,
+                vol.Required(CONF_PASSWORD): str,
+            }
+        )
+        return self.async_show_form(
+            step_id="reauth_confirm", data_schema=schema, errors=errors
         )
 
     @staticmethod
