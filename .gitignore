@@ -25,3 +25,6 @@ secrets.*
 *.secret
 .env
 .env.*
+
+# Diagnose-Logs (können Zonennamen/Wohnungsstruktur enthalten)
+watch_log.txt
