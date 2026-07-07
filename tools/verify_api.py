@@ -68,6 +68,13 @@ async def main() -> None:
         metavar="N",
         help="Teilbereich N scharf und wieder unscharf schalten (VORSICHT)",
     )
+    ap.add_argument(
+        "--test-partset",
+        type=int,
+        metavar="N",
+        help="Teilbereich N INTERN scharf (partset) und wieder unscharf "
+        "schalten (VORSICHT, unverifiziertes Feature)",
+    )
     args = ap.parse_args()
 
     client = SecvestClient(args.host, args.port, args.user, args.password)
@@ -100,6 +107,23 @@ async def main() -> None:
             result = await client.async_set_partition(n, "unset")
             print(f"  Anlage meldet: {result.get('state')}")
             print("Schalttest abgeschlossen.")
+
+        if args.test_partset:
+            n = args.test_partset
+            name = data.partitions.get(n, {}).get("name", f"#{n}")
+            print(f"\n== Phase 2b: Teilbereich {n} ({name}) INTERN scharf (partset) ==")
+            input("Enter drücken zum internen Scharfschalten (Strg+C zum Abbruch)... ")
+            result = await client.async_set_partition(n, "partset")
+            print(f"  Anlage meldet (partset), rohe Antwort: {result}")
+            # Kontrolle: wie erscheint der Zustand in GET /system/partitions/?
+            after = await client.async_get_data()
+            state_after = after.partitions.get(n, {}).get("state")
+            print(f"  GET /system/partitions/ -> state: {state_after!r}")
+            print("  Warte 5 Sekunden...")
+            time.sleep(5)
+            result = await client.async_set_partition(n, "unset")
+            print(f"  Anlage meldet: {result.get('state')}")
+            print("Partset-Test abgeschlossen.")
 
         print("\nAlles OK – bereit für die Installation in Home Assistant.")
     finally:
