@@ -28,3 +28,6 @@ secrets.*
 
 # Diagnose-Logs (können Zonennamen/Wohnungsstruktur enthalten)
 watch_log.txt
+
+# Lose Icon-Quelldatei (die skalierten brand/-Assets sind versioniert)
+Secvest Sirene.png
