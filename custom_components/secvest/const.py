@@ -20,6 +20,9 @@ CONF_VERIFY_SSL = "verify_ssl"
 DEFAULT_PORT = 4433
 DEFAULT_SCAN_INTERVAL = 15  # Sekunden; Web-UI selbst pollt ~2 s
 DEFAULT_VERIFY_SSL = False  # selbstsigniertes Zertifikat
+# /logs/ liefert ~600 Einträge und ignoriert ?limit -> client-seitig
+# auf die neuesten begrenzen.
+DEFAULT_LOG_LIMIT = 10
 
 ENDPOINT_PARTITIONS = "/system/partitions/"
 ENDPOINT_PARTITION_SET = "/system/partitions-{p}/"

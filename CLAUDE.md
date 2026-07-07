@@ -92,6 +92,34 @@ alles mit „alarm" im String) auf `AlarmControlPanelState.TRIGGERED`;
 roher Panel-`state` zusätzlich als Attribut `panel_state`. Kein neuer
 Endpoint/keine SecvestData-Erweiterung nötig – der state trägt alles.
 
+## /logs/-Struktur 07.07.2026 (Aufgabe 3) – verifiziert
+
+`GET /logs/` → JSON-Liste, **neueste zuerst**, **~600 Einträge**;
+**`?limit=N` wird IGNORIERT** (immer alle) → client-seitig kürzen.
+Eintragsschema:
+
+```json
+{ "id": "456555213824", "type": "normal" | "alarm",
+  "desc": "Ben 001 TB 2 rückgesetzt",
+  "events": [ { "timestamp": "1783418804", "partition": "1",
+                "user": "1", "username": "Alex", "zone": "301" } ] }
+```
+
+Felder: `desc` = Klartext, `type` = normal/alarm; in `events[0]`:
+`timestamp` (Unix-Epoch als String), `username`/`user`, optional
+`partition`/`zone`. Achtung: `partition` im Event ist 0-basiert
+(TB2 → "1"), der `desc`-Text 1-basiert ("TB 2"). Zeit-Caveat: Epoch
+scheint Lokalzeit-als-UTC zu sein (Log 12:06 vs. PC 10:06 beim Test) –
+Zeitzone ggf. später glätten.
+
+**Umgesetzt (Aufgabe-3):** api.py `async_get_logs(limit=10)` +
+`SecvestData.logs`, im selben Poll-Zyklus (4. sequentieller GET,
+optional/resilient). Neue `sensor.py`: Sensor „Letztes Ereignis"
+(State = `desc` des neuesten Eintrags; Attribute typ/zeit/benutzer/
+teilbereich/zone + `letzte_ereignisse`-Liste). Platform.SENSOR in
+__init__.py registriert. Lastnotiz: 600er-Payload je Poll – falls die
+Anlage darunter leidet, Logs später seltener holen (nicht jeder Zyklus).
+
 ## Offene Punkte
 
 1. ~~PUT mit Basic Auth verifizieren~~ **ERLEDIGT (07.07.2026)**: Der PUT

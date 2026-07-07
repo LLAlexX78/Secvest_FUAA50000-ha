@@ -16,9 +16,11 @@ from typing import Any
 import httpx
 
 from .const import (
+    DEFAULT_LOG_LIMIT,
     ENDPOINT_FAULTS,
     ENDPOINT_FORM_LOGIN,
     ENDPOINT_GLOBAL_STATUS,
+    ENDPOINT_LOGS,
     ENDPOINT_PARTITION_SET,
     ENDPOINT_PARTITIONS,
     STATE_SET,
@@ -60,6 +62,8 @@ class SecvestData:
     faults: list[dict[str, Any]] = field(default_factory=list)
     # Offene Zonen aus sec_global_status: [{"name", "state", "partitions"}]
     open_zones: list[dict[str, str]] = field(default_factory=list)
+    # Neueste Ereignisse aus /logs/ (client-seitig begrenzt)
+    logs: list[dict[str, Any]] = field(default_factory=list)
 
 
 class SecvestClient:
@@ -192,7 +196,31 @@ class SecvestClient:
         except SecvestConnectionError:
             _LOGGER.debug("Global-Status nicht abrufbar, wird übersprungen")
 
+        # Ereignisprotokoll (optional). Im selben sequentiellen Poll-Zyklus,
+        # keine Extra-Requests außerhalb des Coordinators.
+        try:
+            data.logs = await self.async_get_logs()
+        except SecvestConnectionError:
+            _LOGGER.debug("Logs nicht abrufbar, werden übersprungen")
+
         return data
+
+    async def async_get_logs(self, limit: int = DEFAULT_LOG_LIMIT) -> list[dict]:
+        """Neueste Ereignisse aus /logs/.
+
+        Die Anlage ignoriert ?limit und liefert immer alle (~600 Einträge,
+        neueste zuerst); daher client-seitig auf die neuesten kürzen.
+        """
+        resp = await self._request("GET", ENDPOINT_LOGS)
+        if resp.status_code >= 300:
+            return []
+        try:
+            data = resp.json()
+        except ValueError:
+            return []
+        if not isinstance(data, list):
+            return []
+        return data[:limit]
 
     async def async_set_partition(self, partition: int, mode: str) -> dict:
         """Teilbereich schalten.
