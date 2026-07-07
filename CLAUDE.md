@@ -178,37 +178,38 @@ Zonen-Sensoren ab). Attribute: meldungen, funkwarnung, details
 (text/typ/is_rf_warning/prevents_set). Verifiziert: bei leerem /faults/
 zeigt der Sensor „aus".
 
-## Offene Punkte
+## Status Aufgaben 1–6
 
-1. ~~PUT mit Basic Auth verifizieren~~ **ERLEDIGT (07.07.2026)**: Der PUT
-   wurde direkt via Basic akzeptiert und fachlich verarbeitet (HTTP 409,
-   nicht 401/403). Der Form-Login-Fallback musste nicht greifen – Basic
-   funktioniert auch schreibend.
-2. ~~"partset" (intern scharf) verifizieren~~ **ERLEDIGT (07.07.2026)**:
-   Auf TB1 bestätigt (String `partset`), ARM_HOME freigeschaltet. Feature
-   ist partitionsabhängig – nicht-fähige Teilbereiche liefern 409 (TB3).
-   Siehe partset-Test oben.
-3. ~~Echter set→unset-Toggle~~ **ERLEDIGT (07.07.2026)**: Auf TB3 (OG)
-   sauber durchgeführt – `set` und `unset` je von der Anlage bestätigt.
-   Merke: 409 = prevents-set / offene Zone / **leerer Teilbereich**, nie
-   Auth. Für künftige Schalttests einen Teilbereich MIT Zone nehmen
-   (nicht TB4).
-4. /faults/ liefert sporadisch 404 (im HAR belegt; am 07.07. lieferte es
-   sauber) – Client behandelt das bereits als optional. Nicht als Fehler
-   werten.
-5. Die Anlage bricht unter Last Requests ab (Status 0 im HAR) –
-   Polling nicht unter 10 s stellen, keine parallelen Abfragen. Zusätzlich
-   TLS-Handshake ~7 s einplanen (siehe Connect-Timeout-Fix oben).
-6. pytest mit pytest-homeassistant-custom-component aufsetzen;
-   Fixtures aus den HAR-Payloads bauen (liegen in diesem Repo NICHT –
-   Zugangsdaten! Payload-Beispiele stehen oben).
+Alle Aufgaben aus AUFGABEN.md umgesetzt und (soweit ohne HA möglich)
+verifiziert: ARM_HOME/partset, TRIGGERED, Logs-Sensor, Zonen-Sensoren,
+Wartungssensor, Options-Flow (Intervall + Teilbereich-Auswahl),
+Reauth-Flow, pytest (CI grün). Offen bleiben nur die HA-UI-Abnahmen
+(Test in der laufenden HA-Instanz) sowie die Punkte unten.
 
-## Ausbau (nach Inbetriebnahme)
+## Bekannte Einschränkungen / offen
 
-- sensor.py: letzter Log-Eintrag aus /logs/, Firmware-Info
-- Options Flow: Scan-Intervall einstellbar
-- Reauth-Flow
-- HACS-Struktur (hacs.json, Releases)
+- **/faults/** liefert sporadisch 404 – Client behandelt das optional,
+  nicht als Fehler werten.
+- **Last**: Anlage bricht unter Last ab. Polling nie < 10 s, keine
+  parallelen Abfragen, TLS-Handshake ~7 s einplanen.
+- **Batterie-/Funk-Störungscodes** noch unbekannt (nicht provozierbar) –
+  bei Auftreten in `const.FAULT_TYPES` eintragen; der Wartungssensor
+  zeigt sie schon generisch.
+- **Zonennamen** geschlossener, nie geöffneter Zonen sind generisch
+  („Zone <id>") bis zum ersten Offen-Zustand (in HA umbenennbar).
+- **Log-Zeit** ist Epoch als Lokalzeit-als-UTC – Zeitzone ggf. glätten.
+- **Form-Login** (`sec_login.cgi`) stellt keine Session her → die
+  `.cgx`-Volldaten (nur Web-UI-Session) sind nicht nutzbar. Basic reicht
+  für alle genutzten REST-Endpoints; Zonen laufen über /faults/.
+
+## Nach Abschluss – Erinnerungen
+
+- **Passwort der Anlage wechseln** – es wurde im Chatverlauf geteilt.
+- Lokale `.claude/settings*.json` enthalten das Passwort im Klartext
+  (per `.gitignore` NICHT im Repo, aber lokal auf der Platte) – bei
+  Bedarf bereinigen.
+- Keine HAR-/Log-Datei ins Repo (Zugangsdaten; `watch_log.txt` ist
+  gitignored). Payload-Beispiele stehen in dieser Datei.
 
 ## Regeln
 
