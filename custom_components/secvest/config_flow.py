@@ -7,11 +7,36 @@ from typing import Any
 
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlow,
+)
 from homeassistant.const import CONF_HOST, CONF_PASSWORD, CONF_PORT, CONF_USERNAME
+from homeassistant.core import callback
+from homeassistant.helpers.selector import (
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
+    SelectOptionDict,
+    SelectSelector,
+    SelectSelectorConfig,
+    SelectSelectorMode,
+)
 
 from .api import SecvestAuthError, SecvestClient, SecvestConnectionError
-from .const import CONF_VERIFY_SSL, DEFAULT_PORT, DEFAULT_VERIFY_SSL, DOMAIN
+from .const import (
+    CONF_PARTITIONS,
+    CONF_SCAN_INTERVAL,
+    CONF_VERIFY_SSL,
+    DEFAULT_PORT,
+    DEFAULT_SCAN_INTERVAL,
+    DEFAULT_VERIFY_SSL,
+    DOMAIN,
+    MAX_SCAN_INTERVAL,
+    MIN_SCAN_INTERVAL,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -70,3 +95,71 @@ class SecvestConfigFlow(ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="user", data_schema=DATA_SCHEMA, errors=errors
         )
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(
+        config_entry: ConfigEntry,
+    ) -> SecvestOptionsFlow:
+        return SecvestOptionsFlow(config_entry)
+
+
+class SecvestOptionsFlow(OptionsFlow):
+    """Optionen: Poll-Intervall und Auswahl der genutzten Teilbereiche."""
+
+    def __init__(self, config_entry: ConfigEntry) -> None:
+        self._entry = config_entry
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        coordinator = self._entry.runtime_data
+        partitions = (
+            coordinator.data.partitions
+            if coordinator and coordinator.data
+            else {}
+        )
+        part_options = [
+            SelectOptionDict(
+                value=str(pid),
+                label=partitions[pid].get("name", f"Teilbereich {pid}"),
+            )
+            for pid in sorted(partitions)
+        ]
+        # Vorbelegung: gespeicherte Auswahl, sonst alle mit >=1 Zone.
+        current_parts = self._entry.options.get(
+            CONF_PARTITIONS,
+            [str(pid) for pid, p in partitions.items() if p.get("zones")],
+        )
+        current_interval = self._entry.options.get(
+            CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
+        )
+
+        schema = vol.Schema(
+            {
+                vol.Required(
+                    CONF_SCAN_INTERVAL, default=current_interval
+                ): NumberSelector(
+                    NumberSelectorConfig(
+                        min=MIN_SCAN_INTERVAL,
+                        max=MAX_SCAN_INTERVAL,
+                        step=5,
+                        unit_of_measurement="s",
+                        mode=NumberSelectorMode.BOX,
+                    )
+                ),
+                vol.Required(
+                    CONF_PARTITIONS, default=current_parts
+                ): SelectSelector(
+                    SelectSelectorConfig(
+                        options=part_options,
+                        multiple=True,
+                        mode=SelectSelectorMode.LIST,
+                    )
+                ),
+            }
+        )
+        return self.async_show_form(step_id="init", data_schema=schema)

@@ -19,7 +19,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from . import SecvestConfigEntry
+from . import SecvestConfigEntry, enabled_partitions
 from .api import SecvestError
 from .const import (
     DOMAIN,
@@ -40,9 +40,11 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     coordinator = entry.runtime_data
+    enabled = enabled_partitions(entry, coordinator)
     async_add_entities(
         SecvestAlarmPanel(coordinator, entry, pid)
         for pid in sorted(coordinator.data.partitions)
+        if pid in enabled
     )
 
 

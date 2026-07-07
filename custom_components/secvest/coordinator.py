@@ -11,7 +11,7 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .api import SecvestAuthError, SecvestClient, SecvestConnectionError, SecvestData
-from .const import DEFAULT_SCAN_INTERVAL, DOMAIN
+from .const import CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -22,12 +22,15 @@ class SecvestCoordinator(DataUpdateCoordinator[SecvestData]):
     def __init__(
         self, hass: HomeAssistant, entry: ConfigEntry, client: SecvestClient
     ) -> None:
+        interval = int(
+            entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+        )
         super().__init__(
             hass,
             _LOGGER,
             name=DOMAIN,
             config_entry=entry,
-            update_interval=timedelta(seconds=DEFAULT_SCAN_INTERVAL),
+            update_interval=timedelta(seconds=interval),
         )
         self.client = client
 

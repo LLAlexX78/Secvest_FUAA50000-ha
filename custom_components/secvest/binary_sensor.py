@@ -18,7 +18,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from . import SecvestConfigEntry
+from . import SecvestConfigEntry, enabled_partitions
 from .const import DOMAIN, FAULT_TYPE_OPEN_ZONE, FAULT_TYPES
 from .coordinator import SecvestCoordinator
 
@@ -42,13 +42,24 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     coordinator = entry.runtime_data
+    enabled = enabled_partitions(entry, coordinator)
+
+    def _zone_enabled(zid: str) -> bool:
+        part = coordinator.data.zones.get(zid, {}).get("partition")
+        try:
+            return int(part) in enabled
+        except (TypeError, ValueError):
+            return True  # ohne bekannten Teilbereich lieber anzeigen
+
     entities: list[BinarySensorEntity] = [
         SecvestFaultSensor(coordinator, entry, pid)
         for pid in sorted(coordinator.data.partitions)
+        if pid in enabled
     ]
     entities += [
         SecvestZoneSensor(coordinator, entry, zid)
         for zid in sorted(coordinator.data.zones)
+        if _zone_enabled(zid)
     ]
     entities.append(SecvestMaintenanceSensor(coordinator, entry))
     async_add_entities(entities)

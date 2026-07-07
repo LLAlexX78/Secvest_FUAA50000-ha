@@ -16,6 +16,11 @@ POST /sec_login.cgi mit usr=<code>&pwd=<passwort> (Session-Cookie).
 DOMAIN = "secvest"
 
 CONF_VERIFY_SSL = "verify_ssl"
+# Options-Flow
+CONF_SCAN_INTERVAL = "scan_interval"
+CONF_PARTITIONS = "partitions"  # Liste ausgewählter Teilbereich-IDs (str)
+MIN_SCAN_INTERVAL = 10  # Anlage bricht unter Last ab -> nie darunter
+MAX_SCAN_INTERVAL = 120
 
 DEFAULT_PORT = 4433
 DEFAULT_SCAN_INTERVAL = 15  # Sekunden; Web-UI selbst pollt ~2 s
