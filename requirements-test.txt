@@ -1,0 +1,4 @@
+# Test-Abhängigkeiten. Die Config-Flow-/Coordinator-Tests brauchen ein
+# lauffähiges Home Assistant (bringt pytest-homeassistant-custom-component
+# passend mit). Die reinen Parser-Tests laufen auch nur mit pytest+httpx.
+pytest-homeassistant-custom-component

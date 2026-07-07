@@ -191,7 +191,8 @@ class SecvestClient:
         try:
             resp = await self._request("GET", ENDPOINT_FAULTS)
             if resp.status_code < 300:
-                data.faults = resp.json()
+                faults = resp.json()
+                data.faults = faults if isinstance(faults, list) else []
         except (SecvestConnectionError, ValueError):
             _LOGGER.debug("Faults nicht abrufbar, wird übersprungen")
 
