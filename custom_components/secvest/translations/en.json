@@ -1,0 +1,24 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect ABUS Secvest",
+        "data": {
+          "host": "Panel IP address",
+          "port": "Port (default 4433)",
+          "username": "Username",
+          "password": "User code / password",
+          "verify_ssl": "Verify SSL certificate (leave off for Secvest)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Connection failed",
+      "invalid_auth": "Authentication rejected",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "Device is already configured"
+    }
+  }
+}

@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtuelle Umgebungen
+.venv/
+venv/
+env/
+
+# Claude Code lokale Konfiguration – enthält u.U. Zugangsdaten!
+.claude/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Secrets / lokale Overrides – niemals committen
+secrets.*
+*.secret
+.env
+.env.*

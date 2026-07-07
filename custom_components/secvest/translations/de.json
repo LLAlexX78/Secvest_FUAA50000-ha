@@ -1,0 +1,24 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "ABUS Secvest verbinden",
+        "data": {
+          "host": "IP-Adresse der Zentrale",
+          "port": "Port (Standard 4433)",
+          "username": "Benutzername",
+          "password": "Bedienercode / Passwort",
+          "verify_ssl": "SSL-Zertifikat prüfen (Secvest: aus lassen)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung fehlgeschlagen – IP/Port prüfen, Webserver der Secvest aktiv?",
+      "invalid_auth": "Anmeldung abgelehnt – Benutzername und Code prüfen",
+      "unknown": "Unerwarteter Fehler, siehe Log"
+    },
+    "abort": {
+      "already_configured": "Diese Anlage ist bereits eingerichtet"
+    }
+  }
+}
