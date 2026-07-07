@@ -20,6 +20,10 @@ jobs:
         uses: hacs/action@main
         with:
           category: integration
+          # "brands" erst erfuellbar, wenn das Logo im
+          # home-assistant/brands-Repo liegt (nur fuer den Default-Store
+          # noetig, nicht fuer die Custom-Repository-Installation).
+          ignore: brands
 
   hassfest:
     name: Hassfest
