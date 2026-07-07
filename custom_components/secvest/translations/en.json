@@ -10,6 +10,14 @@
           "password": "User code / password",
           "verify_ssl": "Verify SSL certificate (leave off for Secvest)"
         }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate ABUS Secvest",
+        "description": "The credentials have changed. Please enter the username and code/password again.",
+        "data": {
+          "username": "Username",
+          "password": "User code / password"
+        }
       }
     },
     "error": {
@@ -18,7 +26,19 @@
       "unknown": "Unexpected error"
     },
     "abort": {
-      "already_configured": "Device is already configured"
+      "already_configured": "Device is already configured",
+      "reauth_successful": "Re-authentication successful"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Secvest options",
+        "data": {
+          "scan_interval": "Polling interval in seconds (10-120)",
+          "partitions": "Partitions in use"
+        }
+      }
     }
   }
 }

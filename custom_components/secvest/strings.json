@@ -10,6 +10,14 @@
           "password": "Bedienercode / Passwort",
           "verify_ssl": "SSL-Zertifikat prüfen (Secvest: aus lassen)"
         }
+      },
+      "reauth_confirm": {
+        "title": "ABUS Secvest neu anmelden",
+        "description": "Die Zugangsdaten haben sich geändert. Bitte Benutzername und Bedienercode/Passwort erneut eingeben.",
+        "data": {
+          "username": "Benutzername",
+          "password": "Bedienercode / Passwort"
+        }
       }
     },
     "error": {
@@ -18,7 +26,19 @@
       "unknown": "Unerwarteter Fehler, siehe Log"
     },
     "abort": {
-      "already_configured": "Diese Anlage ist bereits eingerichtet"
+      "already_configured": "Diese Anlage ist bereits eingerichtet",
+      "reauth_successful": "Neuanmeldung erfolgreich"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Secvest-Optionen",
+        "data": {
+          "scan_interval": "Abfrageintervall in Sekunden (10–120)",
+          "partitions": "Genutzte Teilbereiche"
+        }
+      }
     }
   }
 }
