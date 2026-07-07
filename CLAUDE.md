@@ -120,6 +120,29 @@ teilbereich/zone + `letzte_ereignisse`-Liste). Platform.SENSOR in
 __init__.py registriert. Lastnotiz: 600er-Payload je Poll – falls die
 Anlage darunter leidet, Logs später seltener holen (nicht jeder Zyklus).
 
+## Zonen-Endpoints 07.07.2026 (Aufgabe 4) – Probe, BLOCKIERT
+
+Lesende Endpoint-Suche für Zonendetails (Namen/Zustand/Teilbereich):
+
+- `/system/zones/`, `/system/zones-301/`, `/system/zone-301/`,
+  `/zones-301/`, `/zones/`, `/system/zones-303/` → alle **HTTP 404**.
+- `/sec_zones.cgx` → **HTTP 200**, aber nur
+  `<form><nloggedin></nloggedin> style="display:none;" …</form>`
+  ("not logged in"). Auch nach erzwungenem `POST /sec_login.cgi`
+  unverändert → dieser cgx braucht einen anderen Session-/Login-Flow
+  (oder die Seite rendert die Daten per JS aus einem weiteren Endpoint).
+- `/sec_zone_status.cgx`, `/sec_zonestatus.cgx`, `/sec_zonen.cgx` → 404.
+
+**Blockiert – braucht DevTools-/HAR-Mitschnitt der Zonen-/Melderseite
+der Web-UI** (welcher Request liefert die Zonenliste mit Namen/Zustand?).
+Bekannt bleibt aus /system/partitions/: Zonen-IDs je Teilbereich
+(TB1→303, TB2→301, TB3→302). Namen erscheinen bisher nur in
+/faults/-ui-strings und in sec_global_status (nur bei OFFENEN Zonen).
+Hinweis: aktuelles sec_global_status-Format war
+`<form><authorised></authorised><open_zones>  </open_zones></form>` –
+weicht vom früher dokumentierten `<zone><name>…` ab (Format ggf.
+firmware-/zustandsabhängig; im Mitschnitt mit prüfen).
+
 ## Offene Punkte
 
 1. ~~PUT mit Basic Auth verifizieren~~ **ERLEDIGT (07.07.2026)**: Der PUT
