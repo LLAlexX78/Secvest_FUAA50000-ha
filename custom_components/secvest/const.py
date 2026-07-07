@@ -38,6 +38,12 @@ ENDPOINT_FORM_LOGIN = "/sec_login.cgi"
 # Offen/Zu-Erkennung der Zonen-Binary-Sensors.
 FAULT_TYPE_OPEN_ZONE = "5000"
 
+# Bekannte /faults/-Typ-Codes (Klartext). Weitere beim Auftreten
+# ergänzen; unbekannte Codes zeigt der Wartungssensor generisch an.
+FAULT_TYPES = {
+    FAULT_TYPE_OPEN_ZONE: "Zone offen / belegt",
+}
+
 # Zustände laut API: "set" | "unset" | "partset" (alle verifiziert).
 # partset (intern scharf) am 07.07.2026 auf TB1 (Haustür) bestätigt:
 # PUT liefert state "partset", GET /system/partitions/ ebenso. ACHTUNG:

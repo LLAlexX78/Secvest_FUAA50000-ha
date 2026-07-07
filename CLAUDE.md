@@ -162,6 +162,22 @@ const.py `FAULT_TYPE_OPEN_ZONE="5000"`. End-to-End verifiziert (302 offen
 = „OG Draht"/TB3). Namens-Caveat: geschlossene, nie geöffnete Zonen
 heißen „Zone <id>" bis zum ersten Offen-Zustand (in HA umbenennbar).
 
+## Wartung/Störungen (Aufgabe 5) – 07.07.2026
+
+/faults/-Felder: `type`, `id`, `ui-string`, `affects-partition` (Liste),
+`affects-zone`, `prevents-set`, `prevents-reset`, `is-rf-warning`.
+Bekannte type-Codes: **5000 = offene Zone**. Batterie-/Funk-Codes bisher
+nicht aufgetreten (nicht provozierbar) → sobald sie erscheinen, in
+`const.FAULT_TYPES` eintragen.
+
+**Umgesetzt:** const.py `FAULT_TYPES` (Code→Klartext, erweiterbar).
+binary_sensor.py `SecvestMaintenanceSensor` (anlagenweit, device_class
+problem): „Ein" bei `is-rf-warning` ODER jeder Störung ≠ 5000 (unbekannte
+Codes generisch sichtbar; offene Zonen ausgeschlossen, die decken die
+Zonen-Sensoren ab). Attribute: meldungen, funkwarnung, details
+(text/typ/is_rf_warning/prevents_set). Verifiziert: bei leerem /faults/
+zeigt der Sensor „aus".
+
 ## Offene Punkte
 
 1. ~~PUT mit Basic Auth verifizieren~~ **ERLEDIGT (07.07.2026)**: Der PUT

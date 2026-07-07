@@ -19,8 +19,21 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import SecvestConfigEntry
-from .const import DOMAIN
+from .const import DOMAIN, FAULT_TYPE_OPEN_ZONE, FAULT_TYPES
 from .coordinator import SecvestCoordinator
+
+
+def _maintenance_faults(
+    faults: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Störungen, die Wartung bedeuten: Funk-/Batteriewarnung oder jede
+    Nicht-offene-Zone-Störung (unbekannte Codes generisch einbeziehen)."""
+    return [
+        f
+        for f in faults
+        if f.get("is-rf-warning")
+        or str(f.get("type")) != FAULT_TYPE_OPEN_ZONE
+    ]
 
 
 async def async_setup_entry(
@@ -37,6 +50,7 @@ async def async_setup_entry(
         SecvestZoneSensor(coordinator, entry, zid)
         for zid in sorted(coordinator.data.zones)
     ]
+    entities.append(SecvestMaintenanceSensor(coordinator, entry))
     async_add_entities(entities)
 
 
@@ -130,4 +144,53 @@ class SecvestZoneSensor(CoordinatorEntity[SecvestCoordinator], BinarySensorEntit
         return {
             "zone_id": self._zone,
             "teilbereich": zone.get("partition"),
+        }
+
+
+class SecvestMaintenanceSensor(
+    CoordinatorEntity[SecvestCoordinator], BinarySensorEntity
+):
+    """Anlagenweiter Wartungssensor (Funk-/Batterie-/sonstige Störungen).
+
+    "Ein" bei Funkwarnung (is-rf-warning) oder jeder Störung, die keine
+    offene Zone ist. Details stehen in den Attributen.
+    """
+
+    _attr_has_entity_name = True
+    _attr_name = "Wartung"
+    _attr_device_class = BinarySensorDeviceClass.PROBLEM
+
+    def __init__(
+        self, coordinator: SecvestCoordinator, entry: SecvestConfigEntry
+    ) -> None:
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{entry.entry_id}_maintenance"
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, entry.entry_id)},
+        )
+
+    def _faults(self) -> list[dict[str, Any]]:
+        return _maintenance_faults(self.coordinator.data.faults)
+
+    @property
+    def is_on(self) -> bool:
+        return len(self._faults()) > 0
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        faults = self._faults()
+        return {
+            "meldungen": [f.get("ui-string", "?") for f in faults],
+            "funkwarnung": any(f.get("is-rf-warning") for f in faults),
+            "details": [
+                {
+                    "text": f.get("ui-string", "?"),
+                    "typ": FAULT_TYPES.get(
+                        str(f.get("type")), f"Code {f.get('type')}"
+                    ),
+                    "is_rf_warning": bool(f.get("is-rf-warning")),
+                    "prevents_set": bool(f.get("prevents-set")),
+                }
+                for f in faults
+            ],
         }
