@@ -8,8 +8,11 @@ den Nutzer, dann auf Freigabe für die nächste Aufgabe warten.
 ## Grundregeln (gelten für alle Aufgaben)
 
 - Schaltbefehle (PUT auf partitions) NIEMALS ohne ausdrückliche Freigabe
-  des Nutzers im Chat ausführen. Testobjekt ist immer Teilbereich 4
-  ("Teilber. 4", keine Zonen zugeordnet) — nie Teilbereich 1-3.
+  des Nutzers im Chat ausführen. Teilbereich 4 ("Teilber. 4") ist LEER
+  und nicht scharfschaltbar (HTTP 409) — als Testobjekt UNGEEIGNET, nicht
+  verwenden. Testobjekt ist ein vom Nutzer je Test freigegebener
+  Teilbereich mit Zone (verifiziert: TB1/Haustür akzeptiert set+partset,
+  TB3/OG nur set). Welcher Teilbereich, entscheidet der Nutzer pro Test.
 - Neue Endpoints nie raten: erst per lesendem Testaufruf oder
   DevTools-Mitschnitt des Nutzers verifizieren, reale Payload in der
   CLAUDE.md dokumentieren, dann implementieren.
@@ -38,8 +41,9 @@ Ziel: ARM_HOME im Alarmpanel funktionsfähig machen.
 3. Bei Erfolg: in alarm_control_panel.py ARM_HOME zu supported_features
    hinzufügen, async_alarm_arm_home implementieren, Zustandsmapping um
    den realen partset-String ergänzen (const.py).
-4. Abnahme: Nutzer schaltet über die HA-Oberfläche Teilbereich 4 intern
-   scharf und wieder unscharf; Zustand in HA stimmt mit Anlage überein.
+4. Abnahme: Nutzer schaltet über die HA-Oberfläche einen partset-fähigen
+   Teilbereich (TB1/Haustür) intern scharf und wieder unscharf; Zustand
+   in HA (ARMED_HOME) stimmt mit Anlage überein.
 
 ## Aufgabe 2: Alarm-Erkennung (TRIGGERED)
 
@@ -47,13 +51,14 @@ Ziel: Ausgelöster Alarm wird in HA als "triggered" angezeigt —
 Grundlage für alle Alarm-Automationen.
 
 1. Recherche am Gerät (mit dem Nutzer koordinieren): Bei einem
-   Testalarm auf Teilbereich 4 parallel die API pollen. Dafür ein
+   Testalarm auf einem vom Nutzer freigegebenen, scharfschaltbaren
+   Teilbereich (NICHT TB4 – leer) parallel die API pollen. Dafür ein
    Hilfsskript tools/watch_status.py schreiben, das /system/partitions/,
    /faults/ und /sec_global_status.cgx im 2-s-Takt abruft und jede
    Änderung mit Zeitstempel in watch_log.txt schreibt (nur lesend).
-2. Nutzer bitten: Skript starten, Teilbereich 4 scharf schalten,
-   Alarm auslösen (Anleitung mit dem Nutzer abstimmen — z.B. über die
-   Anlage selbst), Alarm quittieren, Skript stoppen.
+2. Nutzer bitten: Skript starten, den freigegebenen Teilbereich scharf
+   schalten, Alarm auslösen (Anleitung mit dem Nutzer abstimmen — z.B.
+   über die Anlage selbst), Alarm quittieren, Skript stoppen.
 3. watch_log.txt auswerten: Wie sieht der Alarmzustand in welchem
    Endpoint aus? Exakte Strings in CLAUDE.md dokumentieren.
 4. Implementieren: api.py/SecvestData um Alarmstatus erweitern,

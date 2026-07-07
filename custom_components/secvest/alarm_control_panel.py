@@ -21,7 +21,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import SecvestConfigEntry
 from .api import SecvestError
-from .const import DOMAIN, STATE_SET, STATE_UNSET
+from .const import DOMAIN, STATE_PARTSET, STATE_SET, STATE_UNSET
 from .coordinator import SecvestCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -43,7 +43,13 @@ class SecvestAlarmPanel(CoordinatorEntity[SecvestCoordinator], AlarmControlPanel
     """Ein Teilbereich der Secvest als Alarmpanel."""
 
     _attr_has_entity_name = True
-    _attr_supported_features = AlarmControlPanelEntityFeature.ARM_AWAY
+    # ARM_HOME = "partset" (intern scharf); auf TB1 verifiziert. Nicht alle
+    # Teilbereiche unterstützen es – nicht-fähige antworten mit HTTP 409,
+    # was async_alarm_arm_home als HomeAssistantError sichtbar macht.
+    _attr_supported_features = (
+        AlarmControlPanelEntityFeature.ARM_AWAY
+        | AlarmControlPanelEntityFeature.ARM_HOME
+    )
     _attr_code_arm_required = False
 
     def __init__(
@@ -79,7 +85,7 @@ class SecvestAlarmPanel(CoordinatorEntity[SecvestCoordinator], AlarmControlPanel
             return AlarmControlPanelState.ARMED_AWAY
         if part["state"] == STATE_UNSET:
             return AlarmControlPanelState.DISARMED
-        if part["state"].startswith("part"):
+        if part["state"] == STATE_PARTSET:
             return AlarmControlPanelState.ARMED_HOME
         return None
 
@@ -122,3 +128,8 @@ class SecvestAlarmPanel(CoordinatorEntity[SecvestCoordinator], AlarmControlPanel
 
     async def async_alarm_disarm(self, code: str | None = None) -> None:
         await self._switch(STATE_UNSET)
+
+    async def async_alarm_arm_home(self, code: str | None = None) -> None:
+        """Intern scharf (partset). Nur auf dafür konfigurierten
+        Teilbereichen erlaubt; sonst antwortet die Anlage mit HTTP 409."""
+        await self._switch(STATE_PARTSET)

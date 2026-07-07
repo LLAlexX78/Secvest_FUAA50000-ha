@@ -28,8 +28,11 @@ ENDPOINT_GLOBAL_STATUS = "/sec_global_status.cgx"
 ENDPOINT_LOGS = "/logs/"
 ENDPOINT_FORM_LOGIN = "/sec_login.cgi"
 
-# Zustände laut API: "set" | "unset" (verifiziert).
-# "partset" (intern scharf) ist plausibel, aber noch NICHT verifiziert.
+# Zustände laut API: "set" | "unset" | "partset" (alle verifiziert).
+# partset (intern scharf) am 07.07.2026 auf TB1 (Haustür) bestätigt:
+# PUT liefert state "partset", GET /system/partitions/ ebenso. ACHTUNG:
+# partset ist partitionsabhängig – nur intern-scharf-fähige Teilbereiche
+# akzeptieren es, andere antworten mit HTTP 409 (z.B. TB3/OG).
 STATE_SET = "set"
 STATE_UNSET = "unset"
 STATE_PARTSET = "partset"

@@ -47,22 +47,28 @@ nicht von den zwischenzeitlichen prevents-set-Störungen.)
 `connect=5.0` führte reproduzierbar zu ConnectTimeout. In api.py auf
 `connect=20.0` angehoben.
 
-## partset-Test 07.07.2026 (Aufgabe 1)
+## partset-Test 07.07.2026 (Aufgabe 1) – VERIFIZIERT
 
 `tools/verify_api.py --test-partset N` ergänzt (PUT `{"state":"partset"}`,
-Kontroll-Read, dann unset). Test auf TB3 (OG) mit Freigabe ausgeführt:
-PUT `partset` → **HTTP 409**, obwohl 0 Störungen, 0 offene Zonen und
-`set` auf genau diesem TB3 kurz zuvor sauber funktionierte. Der 409 hängt
-also spezifisch am Wert `partset`, nicht an einer Blockade – keine
-Scharfschaltung erfolgt, Anlage blieb `unset`.
+Kontroll-Read, dann unset). Zwei Tests mit Freigabe:
 
-**Fazit (Aufgabe-1-Regel 2b): partset in dieser Form nicht nutzbar.**
-ARM_HOME NICHT freigeschaltet, `alarm_control_panel.py` unverändert
-(weiterhin nur ARM_AWAY). Wichtig: `"partset"` war ein **geratener**
-Wert-String – der 409 kann „Feature aus" ODER „falscher String"
-bedeuten. Um es später sauber zu klären (statt weiterzuraten – siehe
-Grundregel), einen DevTools-/HAR-Mitschnitt der Web-UI beim „intern
-scharf"-Schalten anfertigen und den echten `state`-Wert hier eintragen.
+- **TB3 (OG): HTTP 409** – trotz 0 Störungen/0 offene Zonen und obwohl
+  `set` dort funktioniert.
+- **TB1 (Haustür): ERFOLG.** PUT `partset` → Antwort
+  `{'id':'1','name':'Haustür','state':'partset','zones':['303']}`;
+  `GET /system/partitions/` meldet ebenfalls `state: 'partset'`; danach
+  `unset` sauber.
+
+**Fazit: partset wird unterstützt, exakter Zustandsstring = `partset`
+(in PUT-Antwort UND GET bestätigt) – aber PARTITIONSABHÄNGIG:** nur
+intern-scharf-fähige Teilbereiche akzeptieren es (TB1 ja, TB3 nein/409).
+
+**Umgesetzt (Aufgabe-1-Schritt 3):** ARM_HOME in
+`alarm_control_panel.py` freigeschaltet (`ARM_AWAY | ARM_HOME`),
+`async_alarm_arm_home` → `partset`, Mapping `partset` →
+`ARMED_HOME`, `STATE_PARTSET` in const.py als verifiziert markiert.
+Auf nicht-fähigen Teilbereichen führt ARM_HOME zu HTTP 409, das als
+HomeAssistantError sichtbar wird.
 
 ## Offene Punkte
 
@@ -70,10 +76,10 @@ scharf"-Schalten anfertigen und den echten `state`-Wert hier eintragen.
    wurde direkt via Basic akzeptiert und fachlich verarbeitet (HTTP 409,
    nicht 401/403). Der Form-Login-Fallback musste nicht greifen – Basic
    funktioniert auch schreibend.
-2. ~~"partset" (intern scharf) verifizieren~~ **GETESTET (07.07.2026)**:
-   PUT `partset` liefert 409 (siehe partset-Test oben). Als geratener
-   String nicht nutzbar → ARM_HOME bleibt aus. Wiederaufnahme nur mit
-   echtem `state`-String aus einem DevTools-/HAR-Mitschnitt.
+2. ~~"partset" (intern scharf) verifizieren~~ **ERLEDIGT (07.07.2026)**:
+   Auf TB1 bestätigt (String `partset`), ARM_HOME freigeschaltet. Feature
+   ist partitionsabhängig – nicht-fähige Teilbereiche liefern 409 (TB3).
+   Siehe partset-Test oben.
 3. ~~Echter set→unset-Toggle~~ **ERLEDIGT (07.07.2026)**: Auf TB3 (OG)
    sauber durchgeführt – `set` und `unset` je von der Anlage bestätigt.
    Merke: 409 = prevents-set / offene Zone / **leerer Teilbereich**, nie
