@@ -61,7 +61,13 @@ Kontroll-Read, dann unset). Zwei Tests mit Freigabe:
 
 **Fazit: partset wird unterstützt, exakter Zustandsstring = `partset`
 (in PUT-Antwort UND GET bestätigt) – aber PARTITIONSABHÄNGIG:** nur
-intern-scharf-fähige Teilbereiche akzeptieren es (TB1 ja, TB3 nein/409).
+intern-scharf-fähige Teilbereiche akzeptieren es (TB1 und TB2 ja,
+TB3 nein/409).
+
+**Nachtrag (Inbetriebnahme):** partset auf TB2 (EG) zusätzlich verifiziert
+(funktioniert). Bei OFFENER Zone liefert partset – wie `set` – HTTP 409
+(erwartet: offene Zone verhindert Scharfschalten). Damit: TB1+TB2 intern-
+scharf-fähig, TB3 nicht.
 
 **Umgesetzt (Aufgabe-1-Schritt 3):** ARM_HOME in
 `alarm_control_panel.py` freigeschaltet (`ARM_AWAY | ARM_HOME`),
