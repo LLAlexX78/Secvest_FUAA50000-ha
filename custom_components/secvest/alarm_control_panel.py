@@ -21,7 +21,14 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import SecvestConfigEntry
 from .api import SecvestError
-from .const import DOMAIN, STATE_PARTSET, STATE_SET, STATE_UNSET
+from .const import (
+    DOMAIN,
+    STATE_ACKNOWLEDGED,
+    STATE_ALARM,
+    STATE_PARTSET,
+    STATE_SET,
+    STATE_UNSET,
+)
 from .coordinator import SecvestCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -81,11 +88,17 @@ class SecvestAlarmPanel(CoordinatorEntity[SecvestCoordinator], AlarmControlPanel
         part = self._data()
         if not part:
             return None
-        if part["state"] == STATE_SET:
-            return AlarmControlPanelState.ARMED_AWAY
-        if part["state"] == STATE_UNSET:
+        state = part["state"]
+        # Alarm zuerst prüfen: "set-alarm" (Vollalarm) und "acknowledged"
+        # (quittiert, noch nicht zurückgesetzt) -> TRIGGERED. "alarm" in
+        # state fängt zusätzlich mögliche Varianten (z.B. part-alarm) ab.
+        if state in (STATE_ALARM, STATE_ACKNOWLEDGED) or "alarm" in state:
+            return AlarmControlPanelState.TRIGGERED
+        if state == STATE_UNSET:
             return AlarmControlPanelState.DISARMED
-        if part["state"] == STATE_PARTSET:
+        if state == STATE_SET:
+            return AlarmControlPanelState.ARMED_AWAY
+        if state == STATE_PARTSET:
             return AlarmControlPanelState.ARMED_HOME
         return None
 
@@ -108,7 +121,9 @@ class SecvestAlarmPanel(CoordinatorEntity[SecvestCoordinator], AlarmControlPanel
             for z in self.coordinator.data.open_zones
             if pid in z.get("partitions", "")
         ]
+        part = self._data()
         return {
+            "panel_state": part["state"] if part else None,
             "faults": faults,
             "prevents_set": prevents_set,
             "open_zones": open_zones,

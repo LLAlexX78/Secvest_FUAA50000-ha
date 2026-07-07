@@ -36,3 +36,11 @@ ENDPOINT_FORM_LOGIN = "/sec_login.cgi"
 STATE_SET = "set"
 STATE_UNSET = "unset"
 STATE_PARTSET = "partset"
+
+# Alarm-Zustände am 07.07.2026 per Testalarm auf TB2 (EG) belegt
+# (tools/watch_status.py). Der Alarm erscheint NUR im state-Feld von
+# GET /system/partitions/ – /faults/ und global_status blieben leer.
+# Ablauf: set -> set-alarm (Vollalarm) -> acknowledged (quittiert,
+# nicht zurückgesetzt) -> unset.
+STATE_ALARM = "set-alarm"
+STATE_ACKNOWLEDGED = "acknowledged"

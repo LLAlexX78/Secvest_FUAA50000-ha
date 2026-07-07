@@ -70,6 +70,28 @@ intern-scharf-fähige Teilbereiche akzeptieren es (TB1 ja, TB3 nein/409).
 Auf nicht-fähigen Teilbereichen führt ARM_HOME zu HTTP 409, das als
 HomeAssistantError sichtbar wird.
 
+## Testalarm 07.07.2026 (Aufgabe 2) – TRIGGERED verifiziert
+
+Mitschnitt per `tools/watch_status.py` (2-s-Takt, sequentiell) während
+eines echten Testalarms auf TB2 (EG, Z301). Beobachtete state-Übergänge
+des Teilbereichs in `GET /system/partitions/`:
+
+  set → **set-alarm** (Vollalarm) → **acknowledged** (quittiert, nicht
+  zurückgesetzt) → unset
+
+**Kernbefund: Der Alarm erscheint AUSSCHLIESSLICH im `state`-Feld von
+`/system/partitions/`.** `/faults/` blieb `[]`, `sec_global_status.cgx`
+`open_zones` blieb leer. Exakte Strings:
+- `set-alarm` = ausgelöster Alarm → HA `TRIGGERED`
+- `acknowledged` = Alarm quittiert, aber noch nicht zurückgesetzt →
+  ebenfalls HA `TRIGGERED` (Alarm bleibt „im Speicher" bis Reset).
+
+**Umgesetzt (Aufgabe-2-Schritt 4):** const.py `STATE_ALARM`/
+`STATE_ACKNOWLEDGED`; alarm_control_panel.py mappt beide (plus generisch
+alles mit „alarm" im String) auf `AlarmControlPanelState.TRIGGERED`;
+roher Panel-`state` zusätzlich als Attribut `panel_state`. Kein neuer
+Endpoint/keine SecvestData-Erweiterung nötig – der state trägt alles.
+
 ## Offene Punkte
 
 1. ~~PUT mit Basic Auth verifizieren~~ **ERLEDIGT (07.07.2026)**: Der PUT
