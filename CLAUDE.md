@@ -47,14 +47,33 @@ nicht von den zwischenzeitlichen prevents-set-Störungen.)
 `connect=5.0` führte reproduzierbar zu ConnectTimeout. In api.py auf
 `connect=20.0` angehoben.
 
+## partset-Test 07.07.2026 (Aufgabe 1)
+
+`tools/verify_api.py --test-partset N` ergänzt (PUT `{"state":"partset"}`,
+Kontroll-Read, dann unset). Test auf TB3 (OG) mit Freigabe ausgeführt:
+PUT `partset` → **HTTP 409**, obwohl 0 Störungen, 0 offene Zonen und
+`set` auf genau diesem TB3 kurz zuvor sauber funktionierte. Der 409 hängt
+also spezifisch am Wert `partset`, nicht an einer Blockade – keine
+Scharfschaltung erfolgt, Anlage blieb `unset`.
+
+**Fazit (Aufgabe-1-Regel 2b): partset in dieser Form nicht nutzbar.**
+ARM_HOME NICHT freigeschaltet, `alarm_control_panel.py` unverändert
+(weiterhin nur ARM_AWAY). Wichtig: `"partset"` war ein **geratener**
+Wert-String – der 409 kann „Feature aus" ODER „falscher String"
+bedeuten. Um es später sauber zu klären (statt weiterzuraten – siehe
+Grundregel), einen DevTools-/HAR-Mitschnitt der Web-UI beim „intern
+scharf"-Schalten anfertigen und den echten `state`-Wert hier eintragen.
+
 ## Offene Punkte
 
 1. ~~PUT mit Basic Auth verifizieren~~ **ERLEDIGT (07.07.2026)**: Der PUT
    wurde direkt via Basic akzeptiert und fachlich verarbeitet (HTTP 409,
    nicht 401/403). Der Form-Login-Fallback musste nicht greifen – Basic
    funktioniert auch schreibend.
-2. **"partset"** (intern scharf) ist unverifiziert – erst testen,
-   dann ggf. ARM_HOME im Panel freischalten.
+2. ~~"partset" (intern scharf) verifizieren~~ **GETESTET (07.07.2026)**:
+   PUT `partset` liefert 409 (siehe partset-Test oben). Als geratener
+   String nicht nutzbar → ARM_HOME bleibt aus. Wiederaufnahme nur mit
+   echtem `state`-String aus einem DevTools-/HAR-Mitschnitt.
 3. ~~Echter set→unset-Toggle~~ **ERLEDIGT (07.07.2026)**: Auf TB3 (OG)
    sauber durchgeführt – `set` und `unset` je von der Anlage bestätigt.
    Merke: 409 = prevents-set / offene Zone / **leerer Teilbereich**, nie
